@@ -1,0 +1,113 @@
+#include <EEPROM.h>
+#include <SoftwareSerial.h>
+SoftwareSerial sgn(10,9);
+int val;
+int OUT1=7;
+int OUT2=8;
+int LED1=5;
+int LED2=6;
+
+#include <IRremote.h>
+int RECV_PIN = A1;
+int buttonState ;
+IRrecv irrecv(RECV_PIN);
+decode_results results;
+
+void setup() {
+    
+sgn.begin(9600);
+Serial.begin(9600);
+irrecv.enableIRIn(); 
+buttonState = HIGH;
+
+pinMode(OUT1,OUTPUT);
+pinMode(OUT2,OUTPUT);
+pinMode(LED1,OUTPUT);
+pinMode(LED2,OUTPUT);
+
+digitalWrite(OUT1,HIGH);
+digitalWrite(OUT2,HIGH);
+
+digitalWrite(OUT1,EEPROM.read(1));
+digitalWrite(OUT2, EEPROM.read(2));
+digitalWrite(LED1,EEPROM.read(3));
+digitalWrite(LED2,EEPROM.read(4));
+}
+
+void loop() {
+buttonState = digitalRead(4);  
+  if (irrecv.decode(&results)) {   
+
+        if (results.value == 0xA32AB931) { 
+        digitalWrite(OUT1, HIGH);
+        digitalWrite(OUT2, HIGH);
+        digitalWrite(LED1,LOW);
+        digitalWrite(LED2,LOW);
+        EEPROM.write(1,digitalRead(OUT1));
+        EEPROM.write(2,digitalRead(OUT2));
+        EEPROM.write(3,digitalRead(LED1));
+        EEPROM.write(4,digitalRead(LED2));
+        delay(300); 
+        }
+        if (results.value == 0x39D41DC6) { 
+        digitalWrite(OUT1, LOW);
+        digitalWrite(OUT2, LOW);
+        digitalWrite(LED1,HIGH);
+        digitalWrite(LED2,HIGH);
+        EEPROM.write(1,digitalRead(OUT1));
+        EEPROM.write(2,digitalRead(OUT2));
+        EEPROM.write(3,digitalRead(LED1));
+        EEPROM.write(4,digitalRead(LED2));
+        delay(300);
+        }
+        if (results.value == 0x143226DB) { 
+        digitalWrite(OUT1,!digitalRead(OUT1));
+        digitalWrite(LED1,!digitalRead(OUT1));
+        EEPROM.write(1,digitalRead(OUT1));
+        EEPROM.write(3,digitalRead(LED1));
+        delay(300);
+        }
+        if (results.value == 0x371A3C86) { 
+        digitalWrite(OUT2,!digitalRead(OUT2));
+        digitalWrite(LED2,!digitalRead(OUT2));
+        EEPROM.write(2,digitalRead(OUT2));
+        EEPROM.write(4,digitalRead(LED2));
+       delay(300);
+        }
+        
+    irrecv.resume(); 
+    Serial.println(results.value);
+  }
+
+  
+  if (sgn.available()){
+    val=sgn.read();
+    if (val==1){
+      digitalWrite(OUT1,!digitalRead(OUT1));
+      digitalWrite(LED1,!digitalRead(LED1));
+        EEPROM.write(1,digitalRead(OUT1));
+        EEPROM.write(3,digitalRead(LED1));
+    }
+    if (val==2){
+      digitalWrite(OUT2,!digitalRead(OUT2));
+      digitalWrite(LED2,!digitalRead(LED2));
+        EEPROM.write(2,digitalRead(OUT2));
+        EEPROM.write(4,digitalRead(LED2));
+    }
+  }
+  
+  if (digitalRead(OUT1)==HIGH & digitalRead(OUT2)==HIGH){
+   sgn.print("4");
+  }
+  if (digitalRead(OUT1)==HIGH & digitalRead(OUT2)==LOW){
+  sgn.print("3");
+  }
+  if (digitalRead(OUT1)==LOW & digitalRead(OUT2)==HIGH){
+   sgn.print("2");
+  }
+  if (digitalRead(OUT1)==LOW & digitalRead(OUT2)==LOW){
+  sgn.print("1");
+  }
+
+  delay(300); 
+}
