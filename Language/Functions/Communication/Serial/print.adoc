@@ -1,150 +1,113 @@
----
-title: Serial.print()
----
+#include <EEPROM.h>
+#include <SoftwareSerial.h>
+SoftwareSerial sgn(10,9);
+int val;
+int OUT1=7;
+int OUT2=8;
+int LED1=5;
+int LED2=6;
 
+#include <IRremote.h>
+int RECV_PIN = A1;
+int buttonState ;
+IRrecv irrecv(RECV_PIN);
+decode_results results;
 
-
-
-= print()
-
-
-// OVERVIEW SECTION STARTS
-[#overview]
---
-
-[float]
-=== Description
-Prints data to the serial port as human-readable ASCII text. This command can take many forms. Numbers are printed using an ASCII character for each digit. Floats are similarly printed as ASCII digits, defaulting to two decimal places. Bytes are sent as a single character. Characters and strings are sent as is. For example-
-
-* `Serial.print(78)` gives "78" +
-* `Serial.print(1.23456)` gives "1.23" +
-* `Serial.print('N')` gives "N" +
-* `Serial.print("Hello world.")` gives "Hello world."
-
-
-An optional second parameter specifies the base (format) to use; permitted values are `BIN(binary, or base 2)`, `OCT(octal, or base 8)`, `DEC(decimal, or base 10)`, `HEX(hexadecimal, or base 16)`. For floating point numbers, this parameter specifies the number of decimal places to use. For example-
-
-* `Serial.print(78, BIN)` gives "1001110" +
-* `Serial.print(78, OCT)` gives "116" +
-* `Serial.print(78, DEC)` gives "78" +
-* `Serial.print(78, HEX)` gives "4E" +
-* `Serial.print(1.23456, 0)` gives "1" +
-* `Serial.print(1.23456, 2)` gives "1.23" +
-* `Serial.print(1.23456, 4)` gives "1.2346"
-
-You can pass flash-memory based strings to Serial.print() by wrapping them with link:../../../../variables/utilities/progmem[F()]. For example:
-
-`Serial.print(F(“Hello World”))`
-
-To send data without conversion to its representation as characters, use link:../write[Serial.write()].
-[%hardbreaks]
-
-
-[float]
-=== Syntax
-`_Serial_.print(val)` +
-`_Serial_.print(val, format)`
-
-
-[float]
-=== Parameters
-`_Serial_`: serial port object. See the list of available serial ports for each board on the link:../../serial[Serial main page]. +
-`val`: the value to print - any data type
-
-[float]
-=== Returns
-`size_t`: `print()` returns the number of bytes written, though reading that number is optional.
-
---
-// OVERVIEW SECTION ENDS
-
-
-
-
-// HOW TO USE SECTION STARTS
-[#howtouse]
---
-
-[float]
-=== Example Code
-// Describe what the example code is all about and add relevant code   ►►►►► THIS SECTION IS MANDATORY ◄◄◄◄◄
-
-
-[source,arduino]
-----
-/*
-  Uses a for loop to print numbers in various formats.
-*/
 void setup() {
-  Serial.begin(9600); // open the serial port at 9600 bps:
+    
+sgn.begin(9600);
+Serial.begin(9600);
+irrecv.enableIRIn(); 
+buttonState = HIGH;
+
+pinMode(OUT1,OUTPUT);
+pinMode(OUT2,OUTPUT);
+pinMode(LED1,OUTPUT);
+pinMode(LED2,OUTPUT);
+
+digitalWrite(OUT1,HIGH);
+digitalWrite(OUT2,HIGH);
+
+digitalWrite(OUT1,EEPROM.read(1));
+digitalWrite(OUT2, EEPROM.read(2));
+digitalWrite(LED1,EEPROM.read(3));
+digitalWrite(LED2,EEPROM.read(4));
 }
 
 void loop() {
-  // print labels
-  Serial.print("NO FORMAT");  // prints a label
-  Serial.print("\t");         // prints a tab
+buttonState = digitalRead(4);  
+  if (irrecv.decode(&results)) {   
 
-  Serial.print("DEC");
-  Serial.print("\t");
-
-  Serial.print("HEX");
-  Serial.print("\t");
-
-  Serial.print("OCT");
-  Serial.print("\t");
-
-  Serial.print("BIN");
-  Serial.println();        // carriage return after the last label
-
-  for (int x = 0; x < 64; x++) { // only part of the ASCII chart, change to suit
-    // print it out in many formats:
-    Serial.print(x);       // print as an ASCII-encoded decimal - same as "DEC"
-    Serial.print("\t\t");  // prints two tabs to accomodate the label lenght
-
-    Serial.print(x, DEC);  // print as an ASCII-encoded decimal
-    Serial.print("\t");    // prints a tab
-
-    Serial.print(x, HEX);  // print as an ASCII-encoded hexadecimal
-    Serial.print("\t");    // prints a tab
-
-    Serial.print(x, OCT);  // print as an ASCII-encoded octal
-    Serial.print("\t");    // prints a tab
-
-    Serial.println(x, BIN);  // print as an ASCII-encoded binary
-    // then adds the carriage return with "println"
-    delay(200);            // delay 200 milliseconds
+        if (results.value == 0xA32AB931) { 
+        digitalWrite(OUT1, HIGH);
+        digitalWrite(OUT2, HIGH);
+        digitalWrite(LED1,LOW);
+        digitalWrite(LED2,LOW);
+        EEPROM.write(1,digitalRead(OUT1));
+        EEPROM.write(2,digitalRead(OUT2));
+        EEPROM.write(3,digitalRead(LED1));
+        EEPROM.write(4,digitalRead(LED2));
+        delay(300); 
+        }
+        if (results.value == 0x39D41DC6) { 
+        digitalWrite(OUT1, LOW);
+        digitalWrite(OUT2, LOW);
+        digitalWrite(LED1,HIGH);
+        digitalWrite(LED2,HIGH);
+        EEPROM.write(1,digitalRead(OUT1));
+        EEPROM.write(2,digitalRead(OUT2));
+        EEPROM.write(3,digitalRead(LED1));
+        EEPROM.write(4,digitalRead(LED2));
+        delay(300);
+        }
+        if (results.value == 0x143226DB) { 
+        digitalWrite(OUT1,!digitalRead(OUT1));
+        digitalWrite(LED1,!digitalRead(OUT1));
+        EEPROM.write(1,digitalRead(OUT1));
+        EEPROM.write(3,digitalRead(LED1));
+        delay(300);
+        }
+        if (results.value == 0x371A3C86) { 
+        digitalWrite(OUT2,!digitalRead(OUT2));
+        digitalWrite(LED2,!digitalRead(OUT2));
+        EEPROM.write(2,digitalRead(OUT2));
+        EEPROM.write(4,digitalRead(LED2));
+       delay(300);
+        }
+        
+    irrecv.resume(); 
+    Serial.println(results.value);
   }
-  Serial.println();        // prints another carriage return
+
+  
+  if (sgn.available()){
+    val=sgn.read();
+    if (val==1){
+      digitalWrite(OUT1,!digitalRead(OUT1));
+      digitalWrite(LED1,!digitalRead(LED1));
+        EEPROM.write(1,digitalRead(OUT1));
+        EEPROM.write(3,digitalRead(LED1));
+    }
+    if (val==2){
+      digitalWrite(OUT2,!digitalRead(OUT2));
+      digitalWrite(LED2,!digitalRead(LED2));
+        EEPROM.write(2,digitalRead(OUT2));
+        EEPROM.write(4,digitalRead(LED2));
+    }
+  }
+  
+  if (digitalRead(OUT1)==HIGH & digitalRead(OUT2)==HIGH){
+   sgn.print("4");
+  }
+  if (digitalRead(OUT1)==HIGH & digitalRead(OUT2)==LOW){
+  sgn.print("3");
+  }
+  if (digitalRead(OUT1)==LOW & digitalRead(OUT2)==HIGH){
+   sgn.print("2");
+  }
+  if (digitalRead(OUT1)==LOW & digitalRead(OUT2)==LOW){
+  sgn.print("1");
+  }
+
+  delay(300); 
 }
-----
-[%hardbreaks]
-
-[float]
-=== Notes and Warnings
-For information on the asyncronicity of `Serial.print()`, see the Notes and Warnings section of the link:../write#howtouse[Serial.write() reference page].
-
---
-// HOW TO USE SECTION ENDS
-
-
-// SEE ALSO SECTION
-[#see_also]
---
-
-[float]
-=== See also
-
-[role="language"]
-* #LANGUAGE# link:../begin[begin()]
-* #LANGUAGE# link:../end[end()]
-* #LANGUAGE# link:../available[available()]
-* #LANGUAGE# link:../read[read()]
-* #LANGUAGE# link:../peek[peek()]
-* #LANGUAGE# link:../flush[flush()]
-* #LANGUAGE# link:../println[println()]
-* #LANGUAGE# link:../write[write()]
-* #LANGUAGE# link:../serialevent[SerialEvent()]
-* #LANGUAGE# link:https://www.arduino.cc/en/Tutorial/Memory[Memory]
-
---
-// SEE ALSO SECTION ENDS
